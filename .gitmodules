@@ -6,3 +6,6 @@
 	path = ffmpeg
 	url = https://git.ffmpeg.org/ffmpeg.git
 	branch = release/6.0
+[submodule "opus"]
+	path = opus
+	url = https://github.com/xiph/opus.git
