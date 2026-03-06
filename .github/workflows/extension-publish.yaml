@@ -4,19 +4,15 @@ on:
   push:
     tags:
       - v*
-    branches:
-      - master
 
 env:
   NDK_VER: 26.1.10909125
   CMAKE_VER: 3.31.1
 
 jobs:
-  publish:
-    name: Publish
+  release:
+    name: Release
     runs-on: ubuntu-24.04
-    environment: release
-    if: ${{ contains(github.repository_owner, 'jellyfin') || startsWith(github.ref, 'refs/tags/v') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -39,11 +35,28 @@ jobs:
       - name: Build ffmpeg
         run: ./build.sh
       - name: Set JELLYFIN_VERSION
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         run: echo "JELLYFIN_VERSION=$(echo ${GITHUB_REF#refs/tags/v} | tr / -)" >> $GITHUB_ENV
-      - name: Build extension and publish library
-        run: ./gradlew :media3-ffmpeg-decoder:publish closeAndReleaseSonatypeStagingRepository
+      - name: Build extension and publish library locally
+        run: ./gradlew :media3-ffmpeg-decoder:publishToMavenLocal
+      - name: Collect Maven artifacts
+        run: |
+          mkdir -p release-artifacts
+          cp "${HOME}/.m2/repository/org/jellyfin/media3/media3-ffmpeg-decoder/${JELLYFIN_VERSION}/"* release-artifacts/
+      - name: Upload Maven artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: media3-ffmpeg-decoder-${{ env.JELLYFIN_VERSION }}
+          path: release-artifacts/
+      - name: Create or update GitHub release
         env:
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${JELLYFIN_VERSION}"
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-artifacts/* --clobber --repo "${GITHUB_REPOSITORY}"
+          else
+            gh release create "$TAG" release-artifacts/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "$TAG" \
+              --notes "Opus-enabled FFmpeg decoder build."
+          fi
