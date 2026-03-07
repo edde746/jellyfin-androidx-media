@@ -53,6 +53,7 @@ PATCH_ROOT="${ROOT_DIR}/patches/media3-libopus"
 
 install -m 0644 "${PATCH_ROOT}/CMakeLists.txt" "${FFMPEG_MOD_PATH}/jni/CMakeLists.txt"
 install -m 0755 "${PATCH_ROOT}/build_ffmpeg.sh" "${FFMPEG_MOD_PATH}/jni/build_ffmpeg.sh"
+install -m 0644 "${PATCH_ROOT}/ffmpeg_jni.cc" "${FFMPEG_MOD_PATH}/jni/ffmpeg_jni.cc"
 install -m 0644 "${PATCH_ROOT}/FfmpegLibrary.java" \
     "${FFMPEG_MOD_PATH}/java/androidx/media3/decoder/ffmpeg/FfmpegLibrary.java"
 
